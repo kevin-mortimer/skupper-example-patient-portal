@@ -41,6 +41,27 @@ payment_processor_host = os.environ.get("PAYMENT_PROCESSOR_SERVICE_HOST", "local
 payment_processor_port = os.environ.get("PAYMENT_PROCESSOR_SERVICE_PORT", "8081")
 payment_processor_url = f"http://{payment_processor_host}:{payment_processor_port}"
 
+# APIGator Vars
+################################################################################
+## Basics
+apigator_host = os.environ.get("APIGATOR_HOST", "apigator")
+apigator_base_path = os.environ.get("APIGATOR_BASE_PATH", "/apigator")
+apigator_port = os.environ.get("APIGATOR_PORT", "8080")
+## Paths
+apigator_get_token_path = os.environ.get("APIGATOR_GET_TOKEN_PATH", "/identity/v2/token")
+apigator_unprotect_path = os.environ.get("APIGATOR_UNPROTECT_PATH", "/v2/dataset")
+apigator_protect_path = os.environ.get("APIGATOR_PROTECT_PATH", "/protect/v2/dataset")
+## Authentication
+apigator_api_key = os.environ.get("APIGATOR_API_KEY", "")
+apigator_client_id = os.environ.get("APIGATOR_CLIENT_ID", "")
+apigator_secret = os.environ.get("APIGATOR_SECRET", "")
+## URLs
+apigator_get_token_url = f"{apigator_host}:{apigator_port}{apigator_base_path}{apigator_get_token_path}"
+apigator_unprotect_url = f"{apigator_host}:{apigator_port}{apigator_base_path}{apigator_unprotect_path}"
+apigator_protect_url = f"{apigator_host}:{apigator_port}{apigator_base_path}{apigator_protect_path}"
+# Claims
+# TODO add select box for selecting country "US", "UK", "SW (Geneva)", "SW (Zurich)"
+
 pool = None
 change_event = None
 
@@ -125,7 +146,80 @@ async def get_data(request):
 
             data[table] = items
 
-    return CustomJsonResponse(data)
+    print("DATA!:  ", data)
+    unprotectedData = await apigator_unprotect_request(data)
+    print(unprotectedData)
+    return CustomJsonResponse(unprotectedData)
+
+async def apigator_get_token():
+    print("Requesting APIGator Token", f"{apigator_get_token_url}")
+    headers = {
+        "X-Api-Key": f"{apigator_api_key}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {
+        "client_id": f"{apigator_client_id}",
+        "client_secret": f"{apigator_secret}",
+        "grant_type": "client_credentials"
+    }
+
+    async with AsyncClient() as client:
+        response = await client.post(f"{apigator_get_token_url}", data=data, headers=headers)
+        json_data = response.json()
+
+    if response.status_code != 200:
+        return CustomJsonResponse({"error in APIGator Get Token request": response.text}, response.status_code)
+
+    return json_data
+
+@star.route("/apigator/gettoken")
+async def apigator_request_token(request):
+    json_data = await apigator_get_token()
+    return CustomJsonResponse({"token_request": json_data}, 200)
+
+
+async def apigator_unprotect_request(data):
+    print("Requesting APIGator unprotect", f"{apigator_unprotect_url}")
+
+    json_data = await apigator_get_token()
+    token = json_data["access_token"]
+    print("APIGator - TOKEN: ", token)
+    decoded_data = json.dumps(data, default=str, ensure_ascii=False)
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Api-Key": f"{apigator_api_key}",
+        "X-Resource-Token": "Bearer " + token,
+        "X-Request-ID": "f804e11e-4cc4-b14b-91d3-9aea9d6db850",
+        "X-Data-Set-Type": "JSON",
+        "Authorization": "Bearer " + token
+    }
+
+    body = {
+        "countryCode": "GB",
+        "dataOwningCountryCode": "GB",
+        "manifestName": "Flight",
+        "jobType": "Pseudonymise",
+        "dataSet": decoded_data,
+        "protectNullValues": True,
+        "preserveStringLength": False,
+        "snapshotDate": "2025-02-24T00:00:00Z",
+        "dataUsageId": 195,
+        "matchingRule": {
+            "claims": []
+        }
+    }
+
+    print("BODY: ", body)
+
+    async with AsyncClient() as client:
+        response = await client.post(f"{apigator_unprotect_url}", json=decoded_data, headers=headers)
+
+    if response.status_code != 200:
+        return CustomJsonResponse({"error in APIGator unprotect request": response.text}, response.status_code)
+
+    return CustomJsonResponse({"result": response.text}, response.status_code)
+
 
 @star.route("/api/health")
 async def get_health(request):
@@ -179,12 +273,9 @@ async def post_bill_create(request):
 @star.route("/api/bill/pay", methods=["POST"])
 async def post_bill_pay(request):
     data = await request.json()
-    headers = dict(request.headers)
-
-    print("PAYMENT_DATA", data)
 
     async with AsyncClient() as client:
-        response = await client.post(f"{payment_processor_url}/api/pay", json={}, headers={"x-country-code": headers.get("x-country-code")})
+        response = await client.post(f"{payment_processor_url}/api/pay", json={})
 
     if response.status_code != 200:
         return CustomJsonResponse({"error": response.text}, response.status_code)

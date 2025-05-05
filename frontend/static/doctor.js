@@ -28,6 +28,12 @@ const html = `
         <span class="material-icons-outlined">medical_services</span>
         Patient Portal
       </div>
+      <div>
+        <select name="country" id="country-select">
+          <option value="GB">🇬🇧 GB</option>
+          <option value="CH">🇨🇭 CH</option>
+        </select>
+      </div>
       <nav id="global-nav">
         <a>Doctor <span id="doctor-name">-</span></a>
         <a id="log-out-link" href="/">Log out</a>

@@ -1,30 +1,56 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: frontend
-  name: frontend
+    partner: exate
+  name: frontend-exate
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: frontend
+      partner: exate
   template:
     metadata:
       labels:
         app: frontend
+        partner: exate
     spec:
       containers:
         - name: frontend
-          image: quay.io/skupper/patient-portal-frontend
+          image: quay.io/avillega/patient-portal-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
           env:
             - name: DATABASE_SERVICE_HOST
-              value: database
+              value: "database"
             - name: DATABASE_SERVICE_PORT
               value: "5432"
             - name: PAYMENT_PROCESSOR_SERVICE_HOST
-              value: payment-processor
+              value: "hub"
             - name: PAYMENT_PROCESSOR_SERVICE_PORT
               value: "8080"
-          ports:
-            - containerPort: 8080
+            - name: APIGATOR_HOST
+              value: "https://gateway-gravitee-apim.apps.exate-alpha.azure.sandboxedcontainers.com"
+            - name: APIGATOR_BASE_PATH
+              value: "/apigator"
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend-exate
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  internalTrafficPolicy: Cluster
+  selector:
+    app: frontend
+    partner: exate

@@ -312,12 +312,15 @@ export function fetchJSON(url, responseDataHandler, errorHandler) {
         });
 }
 
-export function postJSON(url, requestData, responseDataHandler, errorHandler) {
+export function postJSON(url, requestData, responseDataHandler, errorHandler, customHeaders={}) {
     console.log("Posting data to", url, "(data:", requestData, ")");
 
     fetch(url, {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          ...customHeaders,
+        },
         body: JSON.stringify(requestData),
     })
         .then(response => response.json())

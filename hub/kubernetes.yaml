@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: hub
+    partner: exate
+  name: hub-exate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hub
+      partner: exate
+  template:
+    metadata:
+      labels:
+        app: hub
+        partner: exate
+    spec:
+      containers:
+        - name: hub
+          image: quay.io/avillega/patient-portal-hub:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hub-exate
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  internalTrafficPolicy: Cluster
+  selector:
+    app: hub
+    partner: exate

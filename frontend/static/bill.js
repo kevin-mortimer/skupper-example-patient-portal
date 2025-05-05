@@ -151,7 +151,13 @@ export class PayPage extends gesso.Page {
             const bill = parseInt(event.target.bill.value);
             const patient = parseInt(event.target.patient.value);
 
-            gesso.postJSON("/api/bill/pay", {bill: bill});
+
+            main.router.navigate(new URL(`/patient?id=${patient}&tab=bills`, window.location));
+
+            var cc_menu = document.getElementById("country-select");
+            var country_code = cc_menu.options[cc_menu.selectedIndex].value;
+            console.log("COUNTRY_CODE", country_code);
+            gesso.postJSON("/api/bill/pay", {bill: bill}, null, null, {"x-country-code": country_code});
 
             main.router.navigate(new URL(`/patient?id=${patient}&tab=bills`, window.location));
         });
