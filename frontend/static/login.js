@@ -16,15 +16,17 @@
 // specific language governing permissions and limitations
 // under the License.
 //
-
 import * as gesso from "./gesso/main.js";
+import { renderCountryFlag } from './flags.js';
 import * as main from "./main.js";
 
 const html = `
 <body class="excursion login">
   <section>
     <div>
-      <h1><span class="material-icons-outlined">medical_services</span> Patient Portal</h1>
+      <h1>
+        <span class="material-icons-outlined">medical_services</span> Patient Portal
+      </h1>
 
       <p>Patient Portal is an example application.  It uses a web
       frontend, a relational database, and a payment-processing
@@ -56,7 +58,14 @@ function updatePatientLoginLinks(data) {
     const nav = gesso.createNav(null, "#patient-login-links");
 
     for (const item of Object.values(data.patients)) {
-        gesso.createLink(nav, `/patient?id=${item.id}`, item.name);
+        const countryCode = item.country || "";
+        const displayName = `${item.name} (${renderCountryFlag(countryCode)})`;
+
+        const link = gesso.createLink(nav, `/patient?id=${item.id}`, displayName);
+
+        link.addEventListener("click", () => {
+          localStorage.setItem("countryCode", countryCode);
+        });
     }
 
     $("#patient-login-links").replaceWith(nav);
@@ -66,7 +75,14 @@ function updateDoctorLoginLinks(data) {
     const nav = gesso.createNav(null, "#doctor-login-links");
 
     for (const item of Object.values(data.doctors)) {
-        gesso.createLink(nav, `/doctor?id=${item.id}`, item.name);
+        const countryCode = item.country || "";
+        const displayName = `${item.name} (${renderCountryFlag(countryCode)})`;
+
+        const link = gesso.createLink(nav, `/doctor?id=${item.id}`, displayName);
+
+        link.addEventListener("click", () => {
+          localStorage.setItem("countryCode", countryCode);
+        });
     }
 
     $("#doctor-login-links").replaceWith(nav);
@@ -78,6 +94,7 @@ export class MainPage extends gesso.Page {
     }
 
     updateContent() {
+        var cc_menu = document.getElementById("country-select");
         gesso.fetchJSON("/api/data", data => {
             updatePatientLoginLinks(data);
             updateDoctorLoginLinks(data);

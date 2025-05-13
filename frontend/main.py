@@ -41,6 +41,9 @@ payment_processor_host = os.environ.get("PAYMENT_PROCESSOR_SERVICE_HOST", "local
 payment_processor_port = os.environ.get("PAYMENT_PROCESSOR_SERVICE_PORT", "8081")
 payment_processor_url = f"http://{payment_processor_host}:{payment_processor_port}"
 
+apigator_proxy_url = os.environ.get("APIGATOR_HOST", "/api/data")
+country_code = os.environ.get("COUNTRY_CODE", "ES")
+
 pool = None
 change_event = None
 
@@ -106,6 +109,28 @@ async def get_notifications(request):
             yield {"data": "1"}
 
     return EventSourceResponse(generate())
+
+@star.route("/api/data/proxy")
+async def get_proxy_data(request):
+    reqHeaders = dict(request.headers);
+    countryCode = reqHeaders.get("country-code")
+    headers = {
+        "countryCode": countryCode
+    }
+
+    print("APIGATOR_HOST", apigator_proxy_url)
+    print("APIGATOR_PRE_HEADERS", reqHeaders)
+    print("APIGATOR_HEADERS", headers)
+
+    async with AsyncClient() as client:
+        try:
+            response = await client.get(apigator_proxy_url, headers=headers)
+        except Exception as e:
+            print("Error. Body response: ", response.text)
+            return JSONResponse({"error": str(e)}, status_code=502)
+
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
 
 @star.route("/api/data")
 async def get_data(request):
@@ -181,6 +206,7 @@ async def post_bill_pay(request):
     data = await request.json()
     headers = dict(request.headers)
 
+    print("PAYMENT_URL", payment_processor_url)
     print("PAYMENT_DATA", data)
 
     async with AsyncClient() as client:

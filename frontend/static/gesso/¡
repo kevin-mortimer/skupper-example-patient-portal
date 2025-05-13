@@ -292,13 +292,12 @@ export function plural(noun, count, plural) {
 
 export function fetchJSON(url, responseDataHandler, errorHandler, customHeaders={}) {
     console.log("Fetching data from", url);
+		console.log("Custom Headers: ", customHeaders);
 
     fetch(url, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...customHeaders,
-        },
+        headers: {"Content-Type": "application/json"},
+        ...customHeaders,
     })
         .then(response => response.json())
         .then(responseData => {

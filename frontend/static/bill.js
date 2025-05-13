@@ -154,17 +154,17 @@ export class PayPage extends gesso.Page {
 
             main.router.navigate(new URL(`/patient?id=${patient}&tab=bills`, window.location));
 
-            var cc_menu = document.getElementById("country-select");
-            var country_code = cc_menu.options[cc_menu.selectedIndex].value;
-            console.log("COUNTRY_CODE", country_code);
-            gesso.postJSON("/api/bill/pay", {bill: bill}, null, null, {"x-country-code": country_code});
+            const countryCode = localStorage.getItem("countryCode");
+            gesso.postJSON("/api/bill/pay", {bill: bill}, null, null, {"x-country-code": countryCode});
 
             main.router.navigate(new URL(`/patient?id=${patient}&tab=bills`, window.location));
         });
     }
 
     update() {
-        gesso.fetchJSON("/api/data", data => {
+        const proxyHost = window.env?.PROXY_HOST || "/api/data";
+
+        gesso.fetchJSON(proxyHost, data => {
             $("#bill-pay-form").reset();
 
             const bill = data.bills[parseInt($p("id"))];

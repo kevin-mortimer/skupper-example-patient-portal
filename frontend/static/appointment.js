@@ -82,7 +82,9 @@ export class CreatePage extends gesso.Page {
     }
 
     update() {
-        gesso.fetchJSON("/api/data", data => {
+        const proxyHost = window.env?.PROXY_HOST || "/api/data";
+
+        gesso.fetchJSON(proxyHost, data => {
             $("#appointment-form").reset();
 
             const appointmentRequest = data.appointment_requests[$p("appointment-request")];

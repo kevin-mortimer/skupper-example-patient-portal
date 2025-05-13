@@ -18,6 +18,7 @@
 //
 
 import * as gesso from "./gesso/main.js";
+import { renderCountryWithFlag, renderCountryFlag } from './flags.js';
 import * as main from "./main.js";
 
 const html = `
@@ -28,14 +29,8 @@ const html = `
         <span class="material-icons-outlined">medical_services</span>
         Patient Portal
       </div>
-      <div>
-        <select name="country" id="country-select">
-          <option value="GB">🇬🇧 GB</option>
-          <option value="CH">🇨🇭 CH</option>
-        </select>
-      </div>
       <nav id="global-nav">
-        <a>Patient <span id="patient-name">-</span></a>
+        <a>Customer <span id="patient-name">-</span> <span id="patient-flag">-</span></a>
         <a id="log-out-link" href="/">Log out</a>
       </nav>
     </div>
@@ -124,6 +119,7 @@ const billTable = new gesso.Table("bill-table", [
 const doctorTable = new gesso.Table("doctor-table", [
     ["ID", "id"],
     ["Name", "name"],
+    ["Country", "country", renderCountryWithFlag],
     ["Phone", "phone"],
     ["Email", "email"],
 ]);
@@ -142,9 +138,13 @@ export class MainPage extends gesso.Page {
     }
 
     updateContent() {
-        gesso.fetchJSON("/api/data", data => {
+        const proxyHost = "/api/data/proxy";
+        const countryCode = localStorage.getItem("countryCode");
+
+        gesso.fetchJSON(proxyHost, data => {
             const id = parseInt($p("id"));
             const name = data.patients[id].name;
+            const countryFlag = `${renderCountryFlag(data.patients[id].country)}`;
             const appointmentRequestCreateLink = `/appointment-request/create?patient=${id}`;
 
             const appointmentRequests = Object.values(data.appointment_requests).filter(record => {
@@ -163,6 +163,7 @@ export class MainPage extends gesso.Page {
             const doctors = Object.values(data.doctors);
 
             $("#patient-name").textContent = name;
+            $("#patient-flag").textContent = countryFlag;
             $("#greeting-name").textContent = name.split(/ /)[0];
 
             $("#appointment-request-create-link").setAttribute("href", appointmentRequestCreateLink);
@@ -176,7 +177,7 @@ export class MainPage extends gesso.Page {
             appointmentRequestTable.update(appointmentRequests, data);
             appointmentTable.update(appointments, data);
             billTable.update(bills, data);
-            doctorTable.update(doctors);
+            doctorTable.update(doctors, data);
 
             for (const elem of $$("a.cancel-request")) {
                 elem.addEventListener("click", event => {
@@ -184,6 +185,6 @@ export class MainPage extends gesso.Page {
                     gesso.postJSON("/api/appointment-request/delete", {appointment_request: event.target.getAttribute("data-id")});
                 });
             }
-        });
+        }, null, {"Country-Code": countryCode});
     }
 }

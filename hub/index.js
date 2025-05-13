@@ -37,6 +37,7 @@ const defaultHost  = 'payment-processor-gb';
 const countryTable = {
     CH : 'payment-processor-ch',
     GB : 'payment-processor-gb',
+    US : 'payment-processor-us',
 };
 
 const dispatchRequest = async function(req, res) {
@@ -45,7 +46,6 @@ const dispatchRequest = async function(req, res) {
     const targetHost     = countryTable[dispatchHeader ? dispatchHeader.toUpperCase() : null] || defaultHost;
     const url            = `http://${targetHost}:${OUT_PORT}/api/pay`;
 
-    console.log('Request body: ', req.body);
     console.log('Target URL: ', url);
 
     const response       = await axios.post(url, {});

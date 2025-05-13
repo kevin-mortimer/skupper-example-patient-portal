@@ -18,6 +18,7 @@
 //
 
 import * as gesso from "./gesso/main.js";
+import { renderCountryWithFlag, renderCountryFlag } from './flags.js';
 import * as main from "./main.js";
 
 const html = `
@@ -28,14 +29,9 @@ const html = `
         <span class="material-icons-outlined">medical_services</span>
         Patient Portal
       </div>
-      <div>
-        <select name="country" id="country-select">
-          <option value="GB">🇬🇧 GB</option>
-          <option value="CH">🇨🇭 CH</option>
-        </select>
-      </div>
       <nav id="global-nav">
         <a>Doctor <span id="doctor-name">-</span></a>
+        <span id="doctor-flag">-</span>
         <a id="log-out-link" href="/">Log out</a>
       </nav>
     </div>
@@ -132,6 +128,7 @@ const patientTable = new gesso.Table("patient-table", [
     ["ID", "id"],
     ["Name", "name"],
     ["ZIP", "zip"],
+    ["Country", "country", renderCountryWithFlag],
     ["Phone", "phone"],
     ["Email", "email"],
 ]);
@@ -150,9 +147,13 @@ export class MainPage extends gesso.Page {
     }
 
     updateContent() {
-        gesso.fetchJSON("/api/data", data => {
+        const proxyHost = "/api/data/proxy";
+        const countryCode = localStorage.getItem("countryCode");
+
+        gesso.fetchJSON(proxyHost, data => {
             const id = parseInt($p("id"));
             const name = data.doctors[id].name;
+            const countryFlag = `${renderCountryFlag(data.doctors[id].country)}`;
             const appointmentCreateLink = `/appointment/create?doctor=${id}`;
 
             const appointmentRequests = Object.values(data.appointment_requests).filter(record => {
@@ -164,6 +165,7 @@ export class MainPage extends gesso.Page {
             const patients = Object.values(data.patients);
 
             $("#doctor-name").textContent = name;
+            $("#doctor-flag").textContent = countryFlag;
             $("#greeting-name").textContent = name.split(/ /)[1];
 
             $("#appointment-request-summary").innerHTML =
@@ -175,6 +177,6 @@ export class MainPage extends gesso.Page {
             appointmentTable.update(appointments, data);
             billTable.update(bills, data);
             patientTable.update(patients, data);
-        });
+        }, null, {"Country-Code": countryCode});
     }
 }
